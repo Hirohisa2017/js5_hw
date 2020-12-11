@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+
+    <style>
+        #gmap {
+          height: 400px;
+          width: 600px;
+        }
+    </style>
+</head>
+<body>        
+    <div id="gmap"></div>
+    <select name="何を探したい？" id="search" class="search">
+        <option value="コンビニ">500m コンビニ</option>
+        <option value="公園">公園</option>
+        <option value="駅">駅</option>
+    </select>
+        
+         
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+    <script>
+        var map;
+        function initMap() {
+          var target = document.getElementById('gmap');
+          var center = { lat: 35.67014, lng: 139.70355};  
+          //Empire State Bldg の緯度（latitude）と経度（longitude）
+        map = new google.maps.Map(target, {
+            center: center,
+            zoom: 14,
+            mapTypeID: "hybrid"
+          });
+
+            //情報ウィンドウのインスタンスの生成
+            var infoWindow = new google.maps.InfoWindow; 
+            //PlacesService のインスタンスの生成（引数に map を指定）
+            var service = new google.maps.places.PlacesService(map);
+
+            //ブラウザが対応している場合、position にユーザーの位置情報が入る
+            navigator.geolocation.getCurrentPosition(function(position) { 
+            //position から緯度経度（ユーザーの位置）のオブジェクトを作成し変数に代入
+            var pos = {  
+            lat: position.coords.latitude,
+            lng: position.coords.longitude
+            };
+            //情報ウィンドウに現在位置を指定
+            infoWindow.setPosition(pos);
+            //情報ウィンドウのコンテンツを設定
+            infoWindow.setContent('現在位置を取得しました。');
+            //情報ウィンドウを表示
+            infoWindow.open(map);
+            //マップの中心位置を指定
+            map.setCenter(pos);
+
+            var myCircle = new google.maps.Circle({
+            strokeColor: '#FF0000',
+            strokeOpacity: 0.8,
+            strokeWeight: 2,
+            fillColor: '#FF0000',
+            fillOpacity: 0.35,
+            map: map,
+            center: {lat:position.coords.latitude, lng:position.coords.longitude},
+            radius: 500
+            });
+
+           
+                    //種類（タイプ）やキーワードをもとに施設を検索（プレイス検索）するメソッド nearbySearch()
+                    service.nearbySearch({
+                    location: pos,  //検索するロケーション
+                    radius: 500,  //検索する半径（メートル）
+                    name: document.getElementById("search").value  //タイプで検索。文字列またはその配列で指定
+                    //キーワードで検索する場合は name:'レストラン' や ['レストラン','中華'] のように指定
+                
+                    }, callback);  //コールバック関数（callback）は別途定義
+                
+                    //コールバック関数には results, status が渡されるので、status により条件分岐
+                    function callback(results, status) {
+                    // status は以下のような定数で判定（OK の場合は results が配列で返ってきます）
+                    if (status === google.maps.places.PlacesServiceStatus.OK) {
+                        //results の数だけ for 文で繰り返し処理
+                        for (var i = 0; i < results.length; i++) {
+                        //createMarker() はマーカーを生成する関数（別途定義）
+                        createMarker(results[i]);
+                        }
+
+            }
+            };
+            }, function() {  //位置情報の取得をユーザーがブロックした場合のコールバック
+                //情報ウィンドウの位置をマップの中心位置に指定
+                infoWindow.setPosition(map.getCenter());
+                //情報ウィンドウのコンテンツを設定
+                infoWindow.setContent('Error: Geolocation が無効です。');
+                //情報ウィンドウを表示
+                infoWindow.open(map);
+            });   
+
+        //マーカーを生成する関数（引数には検索結果の配列 results[i] が入ってきます）
+        function createMarker(place) {
+            //var placeLoc = place.geometry.location; 
+            var marker = new google.maps.Marker({
+            map: map,
+            position: place.geometry.location  //results[i].geometry.location
+            });
+        
+            //マーカーにイベントリスナを設定
+            marker.addListener('click', function() {
+            infoWindow.setContent(place.name);  //results[i].name
+            infoWindow.open(map, this);
+            });
+        }
+        
+        }
+        
+    </script> 
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBsII7kgw98upfcCNP9tOUl9YoVnyFvt8k&callback=initMap&libraries=places" async defer></script>
+    
+</body>
+</html>
